@@ -205,12 +205,13 @@ textarea{width:100%;min-height:120px;background:#FFFFFF;color:var(--ink);border:
  <div class="trend"><h3>Tendencia: las últimas 48 horas de la planta simulada</h3><p class="note">Es lo que pasó en la planta simulada durante las 48 horas anteriores a la hora del reloj; el borde derecho es «ahora» y la ventana avanza con la simulación. Tiene tres partes. <b>1 · Depósito:</b> la línea marca cuántos pallets de huevo hay; sube en escalón cuando descarga un camión y baja mientras se quiebra. <b>2 · Tanques:</b> cada línea son los litros que hay dentro de un tanque; el crudo sube al quebrar y baja al pasteurizar; el pasteurizado sube al pasteurizar y cae de golpe cuando carga la cisterna. <b>3 · Barras de abajo:</b> hay un renglón por equipo; el tramo pintado indica las horas en que ese equipo estuvo trabajando y el tramo gris, las horas en que estuvo parado. Por ejemplo, una barra pintada de 06:00 a 13:00 en «Pasteurizador» significa que pasteurizó de 6 a 13. El número de la derecha es el total de horas en marcha en la ventana.</p><div class="legend" id="lgF"></div><div class="fig" style="min-height:440px"><svg id="trF"></svg></div></div>
 </section>
 <section class="view" id="v-ideal">
- <h2>Layout ideal para la quebradora nueva y los tres productos</h2>
+ <h2>Layout optimizado (alternativa 2 · QAP) para la quebradora nueva y los tres productos</h2>
  <p class="note">Plano a escala de la nave actual (medidas del plano 1:100) con el mismo gemelo corriendo adentro: tanques que se llenan, camiones y flujos que se encienden cuando hay movimiento. Se parte del edificio existente y se reordena según las reglas de las plantas de ovoproductos de referencia: un solo sentido de sucio a limpio, quebrado, crudo y pasteurizado en salas separadas, y camiones de materia prima y de producto por frentes distintos. Orientaciones según el plano (arriba = norte, a confirmar).</p>
- <div class="presets"><span>Ver:</span><button data-lay="ide" class="on">Layout ideal propuesto</button><button data-lay="ini">Layout inicial (hoy) con la quebradora nueva</button></div>
+ <div class="presets"><span>Ver:</span><button data-lay="opt" class="on">Alternativa 2 (QAP)</button><button data-lay="slp">Alternativa 1 (SLP)</button><button data-lay="ide">Propuesto original</button><button data-lay="ini">Layout inicial (hoy) con la quebradora nueva</button></div>
  <div class="presets"><span>Escenario:</span><button data-pre="A">F1 · pasteurizador actual</button><button data-pre="B">F2 · pasteurizador 2.500 L/h</button><button data-pre="C">F3 · 2.º turno</button><button data-pre="D">F4 · 50 % clara cruda</button></div>
  <div class="legend" id="layLg"></div>
  <div class="hmi"><div class="pid" id="plan"></div><aside class="face" id="planFace"></aside></div>
+ <div class="band" id="cmp3band"><h3>Comparación de los tres layouts con los valores actuales</h3><p class="note">Los tres sobre la quebradora nueva, con el flujo que está corriendo en el gemelo. Se recalcula cuando cambia el flujo, un parámetro, la base de diseño o la matriz de relaciones. Elegí arriba qué layout ver: el plano animado y todos los indicadores de la pestaña pasan a ese layout.</p><div class="scroll"><table id="tCmp3"></table></div><div class="find" id="cmp3Txt" style="margin-top:10px"></div></div>
  <h2 style="margin-top:26px" id="optimo">Layout optimizado para la quebradora nueva con ampliación</h2>
  <p class="note">Asignación óptima de las diez áreas a los trece módulos del edificio actual, calculada con el flujo de la quebradora nueva que está corriendo en el gemelo y dimensionada para crecer (pasteurizadora de mayor caudal y tanques de reserva). La alternativa 1 sale del SLP (mayor puntaje de cercanías) y la alternativa 2 del QAP (orden: alta higiene contigua, después relaciones A cumplidas y, a igualdad, menor momento de transporte). Se recalcula sola cuando cambia el flujo de la quebradora, un escenario rápido, un parámetro o una relación de la matriz.</p>
  <div class="band" id="mtAlg" style="border-left:4px solid var(--info)">
@@ -790,7 +791,7 @@ scrub.oninput=()=>{T=+scrub.value;frame.dirty=true;};
 /* ---------- análisis ---------- */
 const kp=(t,v,u,cl='')=>`<div class="kpi ${cl}"><small>${t}</small><b>${v}</b><i>${u||''}</i></div>`;
 const hrs=h=>Number.isFinite(h)?(h>=48?fmt(h/24,1)+' días':fmt(h,1)+' h'):'—';
-function renderAll(){buildPlan();layTables();findings();bars();hoursT();sankey('#skA',RA);sankey('#skF',RF);comp();logi();gantt();cistT();mpT();inv();layout();risks();params();frame.dirty=true;}
+function renderAll(){if(shown==='ideal')optCompute();buildPlan();layTables();findings();bars();hoursT();sankey('#skA',RA);sankey('#skF',RF);comp();logi();gantt();cistT();mpT();inv();layout();risks();params();frame.dirty=true;}
 function findings(){
  const a=RA.k,f=RF.k,cA=RA.c,cF=RF.c,o=[];
  o.push(['b',`El pasteurizador es el cuello de botella en ambos escenarios`,`Hoy la línea entrega ${fmt(a.ptMes,1)} t/mes con el pasteurizador ${fmt(a.hP,1)} h/día. Con la OptiBreaker y el mismo pasteurizador de ${fmt(V('f_past'))} L/h la planta llega a ${fmt(f.ptMes,1)} t/mes: la quebradora nueva trabaja sólo ${fmt(f.hQ,1)} h de las ${fmt(cF.hQ)} h disponibles (${fmt(f.hQ/cF.hQ*100)} % de uso).`]);
@@ -937,7 +938,7 @@ function params(){
  $$('#tPar [data-v]').forEach(e=>e.addEventListener('change',()=>{const p=PAR.find(x=>x.id===e.dataset.v);VALD[p.id]=e.checked;logAdd(`${p.l}: ${e.checked?'marcado como validado en planta':'vuelve a pendiente'}`);save();params.done=false;params();}));
 }
 $('#bExp').onclick=async()=>{const j=JSON.stringify({version:2,fecha:new Date().toISOString().slice(0,10),valores:Object.fromEntries(PAR.map(p=>[p.id,p.v])),grabado:SAVED,relaciones:RELOV,validados:PAR.filter(p=>VALD[p.id]).map(p=>p.id),recorridos:LENOV,bitacora:LOG},null,1);$('#io').value=j;try{await navigator.clipboard.writeText(j);$('#ioMsg').textContent='JSON generado y copiado. Guardalo en un archivo de texto.';}catch(e){$('#ioMsg').textContent='JSON generado abajo: copialo a mano.';}};
-$('#bImp').onclick=()=>{try{const j=JSON.parse($('#io').value);let n=0;PAR.forEach(p=>{const v=(j.valores||{})[p.id];if(v===undefined)return;if(p.opts){if(p.opts.some(o=>String(o[0])===String(v))){p.v=typeof p.d==='string'?String(v):+v;n++;}}else if(Number.isFinite(+v)){p.v=+v;n++;}});VALD={};(Array.isArray(j.validados)?j.validados:[]).forEach(id=>{if(PAR.some(p=>p.id===id))VALD[id]=true;});LENOV={ini:{},ide:{}};['ini','ide'].forEach(md=>Object.entries((j.recorridos||{})[md]||{}).forEach(([id,v])=>{if(LAY[md].flows.some(x=>x.id===id)&&Number.isFinite(+v)&&+v>=0)LENOV[md][id]=+v;}));RELOV={};Object.entries(j.relaciones||{}).forEach(([k,v])=>{if(/^[a-z]{3}\|[a-z]{3}$/.test(k)&&/^[AEIOUX]$/.test(v))RELOV[k]=v;});if(Array.isArray(j.bitacora))LOG=j.bitacora.filter(x=>typeof x==='string').slice(0,200);logAdd(`Se cargó una versión de datos (${n} parámetros)`);save();params.done=false;recompute();$('#ioMsg').textContent=`Cargados ${n} parámetros.`;}catch(e){$('#ioMsg').textContent='El texto pegado no es un JSON válido de este gemelo.';}};
+$('#bImp').onclick=()=>{try{const j=JSON.parse($('#io').value);let n=0;PAR.forEach(p=>{const v=(j.valores||{})[p.id];if(v===undefined)return;if(p.opts){if(p.opts.some(o=>String(o[0])===String(v))){p.v=typeof p.d==='string'?String(v):+v;n++;}}else if(Number.isFinite(+v)){p.v=+v;n++;}});VALD={};(Array.isArray(j.validados)?j.validados:[]).forEach(id=>{if(PAR.some(p=>p.id===id))VALD[id]=true;});LENOV={ini:{},ide:{},opt:{},slp:{}};['ini','ide','opt','slp'].forEach(md=>Object.entries((j.recorridos||{})[md]||{}).forEach(([id,v])=>{if((LAY[md]||LAY.ide).flows.some(x=>x.id===id)&&Number.isFinite(+v)&&+v>=0)LENOV[md][id]=+v;}));RELOV={};Object.entries(j.relaciones||{}).forEach(([k,v])=>{if(/^[a-z]{3}\|[a-z]{3}$/.test(k)&&/^[AEIOUX]$/.test(v))RELOV[k]=v;});if(Array.isArray(j.bitacora))LOG=j.bitacora.filter(x=>typeof x==='string').slice(0,200);logAdd(`Se cargó una versión de datos (${n} parámetros)`);save();params.done=false;recompute();$('#ioMsg').textContent=`Cargados ${n} parámetros.`;}catch(e){$('#ioMsg').textContent='El texto pegado no es un JSON válido de este gemelo.';}};
 $('#bReset').onclick=()=>{PAR.forEach(p=>p.v=p.d);save();params.done=false;recompute();};
 $('#bCsv').onclick=async()=>{const csv=['id;parametro;escenario;valor;unidad;estado;fuente',...PAR.map(p=>[p.id,p.l,p.sc,p.v,p.u,ST[p.s][0],p.src].join(';'))].join('\n');try{await navigator.clipboard.writeText(csv);$('#csvMsg').textContent='Copiado al portapapeles.';}catch(e){$('#csvMsg').textContent='El navegador no permitió copiar.';}};
 const PRE={A:{f_past:1000,f_hP:7,f_crudoC:0,f_crudoY:0},B:{f_past:2500,f_hP:7,f_crudoC:0,f_crudoY:0},C:{f_past:1000,f_hP:14,f_crudoC:0,f_crudoY:0},D:{f_past:1000,f_hP:7,f_crudoC:50,f_crudoY:0}};
@@ -999,19 +1000,20 @@ const LAY={
    {id:'perL',k:'perL',on:'sh',d:[[9.4,26.3],[9.4,12.6],[4.6,12.6],[4.6,8],[6.05,8],[6.05,4.2]]},{id:'perS',k:'perS',on:'sh',d:[[10.2,26.3],[10.2,11.4],[11.9,11.4]]},{id:'perR',k:'perS',on:'sh',d:[[15.3,26.6],[15.3,23.3]]}],
   trucks:[{id:'mp',l:'Camión huevo',p:[23.6,14,2.6,11]},{id:'ci',l:'Cisterna',p:[-6.2,-2.6,2.6,12.6]},{id:'vw',l:'Reparto',p:[16.9,-8.4,2.6,5.2]}],
   bn:{P:[.8,5.2,5,1.7],T:[.3,10.3,2.5,7.2],D:[11.1,14.9,8.4,9.3],E:[7.4,1.7,2.2,1.5],C:[13.2,.2,6.3,4.3]},yard:[[28.2,10,'PATIO SUCIO (ESTE): huevo, cáscara, maples',1],[6,-6.6,'PATIO LIMPIO (NORTE): insumos y pallets terminados'],[-8.4,12,'CISTERNA (OESTE), junto al CIP',1]],dep:[15.3,23.2],cam:[15.5,3.9]}};
-let layMode='ide';const hidL={};
+LAY.ide.info={fronts:'Este = huevo, cáscara y maples · Norte = pallets terminados, insumos · Oeste = cisterna',nFront:3,cis:'O',vw:'N',ins:'N'};LAY.ini.info={fronts:'Un solo frente (este) para todo',nFront:1};
+let layMode='opt';const hidL={};
 const tankD=v=>Math.cbrt(4*(v/1000)/(1.5*Math.PI));
 const flen=d=>d.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-d[i][0],p[1]-d[i][1]),0);
 const areaP=p=>{let a=0;for(let i=0;i<p.length;i++){const q=p[(i+1)%p.length];a+=p[i][0]*q[1]-q[0]*p[i][1];}return Math.abs(a)/2;};
 const segX=(a,b,c,d)=>{const o=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;};
 function crosses(L){const fl=L.flows.filter(f=>FT[f.k][2]&&!f.tbc),out=[];for(let a=0;a<fl.length;a++)for(let b=a+1;b<fl.length;b++){if(fl[a].k===fl[b].k)continue;let hit=false;for(let i=1;i<fl[a].d.length&&!hit;i++)for(let j=1;j<fl[b].d.length&&!hit;j++)hit=segX(fl[a].d[i-1],fl[a].d[i],fl[b].d[j-1],fl[b].d[j]);if(hit)out.push(FT[fl[a].k][1]+' × '+FT[fl[b].k][1]);}return out;}
 function buildPlan(){
- const L=LAY[layMode],c=RF.c,P=p=>p.map(q=>(q[0]*K).toFixed(1)+','+(q[1]*K).toFixed(1)).join(' ');
+ const L=LAY[layMode]||LAY.ide,c=RF.c,P=p=>p.map(q=>(q[0]*K).toFixed(1)+','+(q[1]*K).toFixed(1)).join(' ');
  if(!$('#layLg').innerHTML)$('#layLg').innerHTML=Object.entries(FT).map(([k,v])=>`<label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" checked data-lyr="${k}" style="accent-color:${v[0]};width:18px;height:18px"><svg width="44" height="10" aria-hidden="true"><line x1="2" y1="5" x2="42" y2="5" stroke="${v[0]}" stroke-width="${FW[v[3]]+1}" stroke-linecap="round" ${FDASH[v[3]]?`stroke-dasharray="${FDASH[v[3]]}"`:''}/></svg>${v[1]}</label>`).join('');
  let s=`<svg viewBox="-100 -90 400 352" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plano de planta con flujos"><rect x="-100" y="-90" width="400" height="352" fill="#E6EBEE"/>`;
  L.yard.forEach(y=>{s+=`<text class="yard" x="${y[0]*K}" y="${y[1]*K}" ${y[3]?`transform="rotate(-90 ${y[0]*K} ${y[1]*K})"`:''}>${y[2]}</text>`;});
  L.rooms.forEach(r=>{s+=`<polygon class="rm${r.new?' new':''}" points="${P(r.p)}" fill="${ZC[r.z][0]}"/>`;});
- L.trucks.forEach(t=>{const [x,y,w,h]=t.p.map(v=>v*K);s+=`<rect class="ptr" id="pt-${t.id}" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/><text class="ptx s" transform="rotate(-90 ${x+w/2} ${y+h/2})" x="${x+w/2}" y="${y+h/2+1.6}">${t.l}</text>`;});
+ L.trucks.forEach(t=>{const [x,y,w,h]=t.p.map(v=>v*K);s+=`<rect class="ptr" id="pt-${t.id}" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/><text class="ptx s" ${t.hz?'':`transform="rotate(-90 ${x+w/2} ${y+h/2})"`} x="${x+w/2}" y="${y+h/2+1.6}">${t.l}</text>`;});
  L.eq.forEach(e=>{s+=`<rect class="peq" ${e.res?'style="fill:none;stroke-dasharray:3 2;stroke:#1A9E55"':''} x="${e.x*K}" y="${e.y*K}" width="${e.w*K}" height="${e.h*K}" rx="1"/>`;});
  L.flows.forEach(f=>{const col=f.s?FTC[f.s]:FT[f.k][0],d='M'+f.d.map(q=>q[0]*K+' '+q[1]*K).join('L'),a=f.d[f.d.length-2],b=f.d[f.d.length-1],an=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
   s+=`<g class="lyr-${f.k}"><path class="pflow f-${FT[f.k][3]}${f.tbc?' tbc':''}" id="pf-${f.id}" d="${d}" stroke="${col}"/><path d="M-1.5 -3.4L5.5 0L-1.5 3.4Z" fill="${col}" transform="translate(${b[0]*K} ${b[1]*K}) rotate(${an})"/></g>`;});
@@ -1026,11 +1028,11 @@ function buildPlan(){
  $('#plan').innerHTML=s;
  Object.keys(hidL).forEach(k=>$$('#plan .lyr-'+k).forEach(e=>e.style.display=hidL[k]?'none':''));
  const zs=[...new Set(L.rooms.map(r=>r.z))];
- $('#planFace').innerHTML=`<h3>${layMode==='ide'?'Layout ideal propuesto':'Layout inicial con la quebradora nueva'}</h3><div id="planLive"></div><h3 style="margin-top:12px">Zonas de higiene</h3>`+zs.map(z=>`<div class="fr"><span><i class="lampd" style="background:${ZC[z][0]};border:1px solid #5D6B77;border-radius:2px"></i>${ZC[z][1]}</span><span></span></div>`).join('')+`<h3 style="margin-top:12px">Salas</h3>`+L.rooms.filter(r=>r.n).map(r=>`<div class="fr"><span>${r.n} · ${r.t.join(' ')}</span><span>${fmt(areaP(r.p))} m²</span></div>`).join('')+`<p class="note" style="margin-top:8px">Borde verde punteado = obra o equipo nuevo. Círculos = tanques (el relleno crece con el nivel). ${layMode==='ini'?'La ubicación de tanques y el recorrido de la carga a granel (línea de puntos) son supuestos: hoy no hay plano de detalle.':'Dimensiones de la OptiBreaker y su cargador a confirmar con la ficha técnica.'}</p>`;
+ const Lm2=LAY[layMode]?layMode:'ide';$('#planFace').innerHTML=`<h3>${{opt:'Alternativa 2 · QAP',slp:'Alternativa 1 · SLP',ide:'Propuesto original',ini:'Layout inicial con la quebradora nueva'}[Lm2]}</h3>${!LAY[layMode]?'<p class="note">No hay alternativa factible con la base de diseño cargada: se muestra el propuesto original.</p>':''}<div id="planLive"></div><h3 style="margin-top:12px">Zonas de higiene</h3>`+zs.map(z=>`<div class="fr"><span><i class="lampd" style="background:${ZC[z][0]};border:1px solid #5D6B77;border-radius:2px"></i>${ZC[z][1]}</span><span></span></div>`).join('')+`<h3 style="margin-top:12px">Salas</h3>`+L.rooms.filter(r=>r.n).map(r=>`<div class="fr"><span>${r.n} · ${r.t.join(' ')}</span><span>${fmt(r.ar||areaP(r.p))} m²</span></div>`).join('')+`<p class="note" style="margin-top:8px">Borde verde punteado = obra o equipo nuevo. Círculos = tanques (el relleno crece con el nivel). ${Lm2==='ini'?'La ubicación de tanques y el recorrido de la carga a granel (línea de puntos) son supuestos: hoy no hay plano de detalle.':(Lm2==='opt'||Lm2==='slp')?'Salas = módulos que asignó el cálculo. Equipos, tanques y recorridos se ubican de forma estimada dentro de cada sala; ajustar con el plano de implantación.':'Dimensiones de la OptiBreaker y su cargador a confirmar con la ficha técnica.'}</p>`;
  frame.dirty=true;
 }
 function updatePlan(){
- const r=RF,c=r.c,h=r.H[Math.min(r.H.length-1,Math.floor(T/5))],L=LAY[layMode],tod=T%1440,dow=Math.floor(T/1440)%7;
+ const r=RF,c=r.c,h=r.H[Math.min(r.H.length-1,Math.floor(T/5))],L=LAY[layMode]||LAY.ide,tod=T%1440,dow=Math.floor(T/1440)%7;
  const shift=dow<c.diasSem&&tod>=c.hIni*60&&tod<(c.hIni+Math.max(c.hQ,c.hP)+1)*60,p=c.S.includes(h.ps);
  const on={q:h.qs===1,p,ci:h.ci,es:!!h.es,mp:h.mp||h.qs===1,sh:shift};
  L.flows.forEach(f=>{const e=document.getElementById('pf-'+f.id);if(e)e.classList.toggle('on',!f.tbc&&!!on[f.on]&&(!f.s||c.q[f.s]>0));});
@@ -1043,14 +1045,14 @@ function updatePlan(){
  alarms(r,h);
 }
 const FLW=[['huevo','Huevo con cáscara: descarga → quebradora',k=>k.shellDia],['cE','Crudo entero: quebradora → tanque',k=>k.by.E.liq,c=>c.q.E*60],['cY','Crudo yema: quebradora → tanque',k=>k.by.Y?k.by.Y.liq-k.by.Y.cru:0,c=>(c.q.Y||0)*60],['cC','Crudo clara: quebradora → tanque',k=>k.by.C?k.by.C.liq-k.by.C.cru:0,c=>(c.q.C||0)*60],['feed','Crudo: tanques → pasteurizador',k=>k.pastKgDia,c=>c.past*60],['past','Pasteurizado: pasteurizador → tanques',k=>k.pastKgDia,c=>c.past*60],['granel','Pasteurizado: tanques → cisterna',(k,c)=>k.pastKgDia*c.mixG,c=>c.cistL/Math.max(.05,c.cargaCist/60)],['toenv','Pasteurizado: tanques → envasadora',(k,c)=>k.pastKgDia*(1-c.mixG),c=>c.envKgH/c.dens],['palpt','Pallets terminados: envasadora → camión',(k,c)=>k.pastKgDia*(1-c.mixG)],['casc','Cáscara: quebradora → contenedor',k=>k.cascDia],['map','Maples y cajones vacíos: quebradora → salida'],['env','Envases e insumos: ingreso → envasadora'],['perL','Personal de zona limpia: ingreso → puesto'],['perS','Personal de quebrado: ingreso → puesto']];
-const flowLen=(md,id)=>{const o=LENOV[md][id];if(Number.isFinite(o))return o;const f=LAY[md].flows.find(x=>x.id===id);return f?flen(f.d):0;};
+const flowLen=(md,id)=>{const o=(LENOV[md]||{})[id];if(Number.isFinite(o))return o;const L=LAY[md]||LAY.ide,f=L.flows.find(x=>x.id===id);return f?flen(f.d):0;};
 function score(){
  const k=RF.k,c=RF.c,A=Math.PI*(V('dPipe')/1000)**2/4*1000,T={mom:[0,0],hold:[0,0],tr:[0,0]},rows=[];
- FLW.forEach(([id,n,q,cau])=>{const m=[flowLen('ini',id),flowLen('ide',id)],kg=q?q(k,c):null,Q=cau?cau(c):0,mo=kg===null?null:m.map(x=>kg*x/1000),tr=cau&&Q>0?m.map(x=>x*A/Q*3600):null;
+ FLW.forEach(([id,n,q,cau])=>{const m=[flowLen('ini',id),flowLen(LK(),id)],kg=q?q(k,c):null,Q=cau?cau(c):0,mo=kg===null?null:m.map(x=>kg*x/1000),tr=cau&&Q>0?m.map(x=>x*A/Q*3600):null;
   if(mo&&kg>0){T.mom[0]+=mo[0];T.mom[1]+=mo[1];}if(cau&&(Q>0)){T.hold[0]+=m[0]*A;T.hold[1]+=m[1]*A;}
   if(tr&&['cE','feed','past','granel'].includes(id)){T.tr[0]+=tr[0];T.tr[1]+=tr[1];}
   rows.push({id,n,m,kg,mo,tr});});
- T.fork=[k.palDia*2*flowLen('ini','huevo'),k.palDia*2*flowLen('ide','huevo')];T.x=[crosses(LAY.ini).length,crosses(LAY.ide).length];
+ T.fork=[k.palDia*2*flowLen('ini','huevo'),k.palDia*2*flowLen(LK(),'huevo')];T.x=[crosses(LAY.ini).length,crosses(LAY[LK()]).length];
  return {rows,T};
 }
 function scoreView(){
@@ -1062,71 +1064,68 @@ function scoreView(){
   ['El producto pasa menos tiempo en tránsito','Segundos en cañería de la quebradora a la cisterna, sin tanques',fmt(T.tr[0])+' s',fmt(T.tr[1])+' s',T.tr[1]<T.tr[0]],
   ['Menos recorrido de autoelevador','Metros por día moviendo pallets de huevo',fmt(T.fork[0])+' m/día',fmt(T.fork[1])+' m/día',T.fork[1]<=T.fork[0]],
   ['Ningún cruce entre recorridos en piso','Pallets, residuos, insumos y personas no se cruzan',T.x[0]+' cruces',T.x[1]+' cruces',T.x[1]===0],
-  ['Lo sucio y lo limpio usan frentes distintos','Huevo, cáscara y maples por un lado; producto terminado por otro','Un solo frente','Tres frentes',true],
-  ['Quebrado, crudo y pasteurizado en salas separadas','Sin aire, piso ni personal compartidos','A verificar: aparecen en un mismo ambiente','Tres salas',true]];
+  ['Lo sucio y lo limpio usan frentes distintos','Huevo, cáscara y maples por un lado; producto terminado por otro','Un solo frente',(LAY[LK()].info||{nFront:1}).nFront+' frentes',(LAY[LK()].info||{nFront:1}).nFront>1],
+  ['Quebrado, crudo y pasteurizado en salas separadas','Sin aire, piso ni personal compartidos','A verificar: aparecen en un mismo ambiente','Tres salas distintas',true]];
  const ok=rq.filter(r=>r[4]).length;
- $('#tReq').innerHTML='<thead><tr><th>Requisito</th><th>Cómo se mide</th><th>Layout inicial</th><th>Layout ideal</th><th>¿Cumple?</th></tr></thead><tbody>'+rq.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td style="color:var(--fut)">${r[3]}</td><td><span class="chip ${r[4]?'d':'r'}">${r[4]?'Sí':'No'}</span></td></tr>`).join('')+`<tr><td colspan="5"><b>El layout ideal cumple ${ok} de ${rq.length} requisitos.</b> Los cinco primeros se recalculan con los metros y parámetros cargados; los dos últimos surgen del plano.</td></tr></tbody>`;
- const inp=(md,r)=>`<input type="number" min="0" step="0.5" style="width:78px${Number.isFinite(LENOV[md][r.id])?';border-color:var(--warn)':''}" data-len="${md}|${r.id}" value="${(+r.m[md==='ini'?0:1].toFixed(1))}" aria-label="${r.n}, metros en layout ${md==='ini'?'inicial':'ideal'}">`;
- $('#tScore').innerHTML='<thead><tr><th>Flujo</th><th class="n">Inicial (m)</th><th class="n">Ideal (m)</th><th class="n">Diferencia</th><th class="n">kg por día</th><th class="n">t·m/día inicial</th><th class="n">t·m/día ideal</th><th class="n">Tránsito inicial (s)</th><th class="n">Tránsito ideal (s)</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${r.n}${r.id==='granel'?' <span class="chip s">punto de carga actual a confirmar</span>':''}</td><td class="n">${inp('ini',r)}</td><td class="n">${inp('ide',r)}</td><td class="n">${dl(r.m[0],r.m[1])}</td><td class="n">${r.kg===null?'—':fmt(r.kg)}</td><td class="n">${r.mo?fmt(r.mo[0],1):'—'}</td><td class="n">${r.mo?fmt(r.mo[1],1):'—'}</td><td class="n">${r.tr?fmt(r.tr[0]):'—'}</td><td class="n">${r.tr?fmt(r.tr[1]):'—'}</td></tr>`).join('')+`<tr><td><b>Total</b></td><td></td><td></td><td class="n">${dl(T.mom[0],T.mom[1])}</td><td></td><td class="n"><b>${fmt(T.mom[0],1)}</b></td><td class="n"><b>${fmt(T.mom[1],1)}</b></td><td class="n"><b>${fmt(T.tr[0])}</b></td><td class="n"><b>${fmt(T.tr[1])}</b></td></tr></tbody>`;
- $$('#tScore [data-len]').forEach(e=>e.addEventListener('change',()=>{const [md,id]=e.dataset.len.split('|'),v=+e.value;if(!(e.value!==''&&Number.isFinite(v)&&v>=0)){delete LENOV[md][id];}else LENOV[md][id]=v;logAdd(`Recorrido ${id} (${md==='ini'?'inicial':'ideal'}): ${e.value===''?'vuelve al plano':fmt(v,1)+' m medidos'}`);save();scoreView();params();}));
+ $('#tReq').innerHTML='<thead><tr><th>Requisito</th><th>Cómo se mide</th><th>Layout inicial</th><th>${LNAME[LK()]}</th><th>¿Cumple?</th></tr></thead><tbody>'+rq.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td style="color:var(--fut)">${r[3]}</td><td><span class="chip ${r[4]?'d':'r'}">${r[4]?'Sí':'No'}</span></td></tr>`).join('')+`<tr><td colspan="5"><b>${LNAME[LK()]} cumple ${ok} de ${rq.length} requisitos.</b> Los cinco primeros se recalculan con los metros y parámetros cargados; los dos últimos surgen del plano.</td></tr></tbody>`;
+ const inp=(md,r)=>`<input type="number" min="0" step="0.5" style="width:78px${Number.isFinite((LENOV[md]||{})[r.id])?';border-color:var(--warn)':''}" data-len="${md}|${r.id}" value="${(+r.m[md==='ini'?0:1].toFixed(1))}" aria-label="${r.n}, metros en layout ${md==='ini'?'inicial':'optimizado'}">`;
+ $('#tScore').innerHTML='<thead><tr><th>Flujo</th><th class="n">Inicial (m)</th><th class="n">${LNAME[LK()]} (m)</th><th class="n">Diferencia</th><th class="n">kg por día</th><th class="n">t·m/día inicial</th><th class="n">t·m/día ${LNAME[LK()]}</th><th class="n">Tránsito inicial (s)</th><th class="n">Tránsito ${LNAME[LK()]} (s)</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${r.n}${r.id==='granel'?' <span class="chip s">punto de carga actual a confirmar</span>':''}</td><td class="n">${inp('ini',r)}</td><td class="n">${inp(LK(),r)}</td><td class="n">${dl(r.m[0],r.m[1])}</td><td class="n">${r.kg===null?'—':fmt(r.kg)}</td><td class="n">${r.mo?fmt(r.mo[0],1):'—'}</td><td class="n">${r.mo?fmt(r.mo[1],1):'—'}</td><td class="n">${r.tr?fmt(r.tr[0]):'—'}</td><td class="n">${r.tr?fmt(r.tr[1]):'—'}</td></tr>`).join('')+`<tr><td><b>Total</b></td><td></td><td></td><td class="n">${dl(T.mom[0],T.mom[1])}</td><td></td><td class="n"><b>${fmt(T.mom[0],1)}</b></td><td class="n"><b>${fmt(T.mom[1],1)}</b></td><td class="n"><b>${fmt(T.tr[0])}</b></td><td class="n"><b>${fmt(T.tr[1])}</b></td></tr></tbody>`;
+ $$('#tScore [data-len]').forEach(e=>e.addEventListener('change',()=>{const [md,id]=e.dataset.len.split('|'),v=+e.value;LENOV[md]=LENOV[md]||{};if(!(e.value!==''&&Number.isFinite(v)&&v>=0)){delete LENOV[md][id];}else LENOV[md][id]=v;logAdd(`Recorrido ${id} (${md==='ini'?'inicial':'optimizado'}): ${e.value===''?'vuelve al plano':fmt(v,1)+' m medidos'}`);save();scoreView();params();}));
 }
 function layTables(){
- scoreView();
- const I=LAY.ini,D=LAY.ide,cF=RF.c,g=(L,id)=>{const f=L.flows.find(x=>x.id===id);return f?flen(f.d):0;},m=v=>'≈ '+fmt(v)+' m';
- const cr=L=>(g(L,'cE')+g(L,'cY')+g(L,'cC'))/3+g(L,'feed'),xi=crosses(I),xd=crosses(D),posF=Math.ceil(RF.k.palDia*V('cobObj')+cF.camMP),qa=areaP(D.rooms.find(r=>r.n===6).p);
+ scoreView();cmp3();
+ const lk=LK(),I=LAY.ini,D=LAY[lk],cF=RF.c,X=asgOf(lk),KK=keyOfL(lk),LN=LNAME[lk],INF=D.info||{fronts:'',nFront:1,vw:'N',ins:'N'},g=(L,id)=>{const f=L.flows.find(x=>x.id===id);return f?flen(f.d):0;};
+ const nm=d=>X[d].bl.map(b=>BL[b].n.toLowerCase()).join(' + '),adj=(a,b)=>!!(X[a].adj&X[b].m),xi=crosses(I),xd=crosses(D),posF=Math.ceil(RF.k.palDia*V('cobObj')+cF.camMP);
+ const free=X?BL.filter(b=>!DP.some(d=>X[d.id].m&(1<<b.i))):[];
+ const freeTx=free.length?`Quedan libres ${free.map(b=>b.n.toLowerCase()+' ('+fmt(b.a)+' m²)').join(', ')}`:'Sin módulos libres: crecer exige ampliar la nave';
+ if(!X){['#tLayCmp','#tMoves','#tTanks','#tPrin'].forEach(id=>$(id).innerHTML='<tbody><tr><td>No hay asignación factible con la base de diseño cargada. Revisá superficies o pasá alguna regla a prioridad.</td></tr></tbody>');$('#tankFit').innerHTML='';$('#layVal').innerHTML='';return;}
  const rows=[
   ['Cruces de recorridos en piso',xi.length+(xi.length?': '+xi.join('; '):''),xd.length+(xd.length?': '+xd.join('; '):'')],
-  ['Frentes de camión','Uno solo (este): huevo, producto terminado, cáscara y maples','Este = sucio · Norte = pallets terminados e insumos · Oeste = cisterna junto al CIP'],
-  ['Quebrado, crudo y pasteurizado','Banda de quebrado abierta al salón de pasteurización según el plano (a verificar)','Tres ambientes separados por muro: quebrado, crudos y alta higiene'],
-  ['Sala de quebrado','≈ 27 m² de transferencia más la banda compartida','≈ '+fmt(qa)+' m² propios, con cargador y quebradora en línea'],
-  ['Tanques','20 t informadas, sin plano de ubicación','3 crudos + blend pegados a la quebradora; 3 terminados sobre el muro oeste, a metros de la cisterna'],
-  ['Posiciones de pallet de huevo','45 informadas en ≈ 85 m²',posF+' requeridas → racks de 2 niveles + playa cubierta'],
+  ['Frentes de camión','Uno solo (este): huevo, producto terminado, cáscara y maples',INF.fronts],
+  ['Quebrado, crudo y pasteurizado','Banda de quebrado abierta al salón de pasteurización según el plano (a verificar)',`Salas distintas: quebrado en ${nm('que')}; crudos en ${nm('cru')}; pasteurización en ${nm('pas')}`],
+  ['Sala de quebrado','≈ 27 m² de transferencia más la banda compartida',`${fmt(X.que.a)} m² en ${nm('que')}, con cargador y quebradora en línea`],
+  ['Tanques','20 t informadas, sin plano de ubicación',`Crudos y blend en ${nm('cru')} (${fmt(X.cru.a)} m²); terminados en ${nm('tkp')} (${fmt(X.tkp.a)} m²)`],
+  ['Depósito de huevo','45 posiciones informadas en ≈ 85 m²',`${posF} posiciones requeridas hoy; ${fmt(X.dep.a)} m² en ${nm('dep')}, racks de ${fmt(V('nivRack'))} niveles`],
+  ['Relaciones de cercanía A cumplidas','—',`${OPT.nA-KK.a} de ${OPT.nA}; zona de alta higiene ${KK.h?'partida':'contigua'}`],
   ['Ingreso de personal','Un paso sanitario común','Filtro con dos salidas (limpia / quebrado) y acceso exterior para recepción'],
-  ['Producto no conforme','Sin sector','Sector propio junto a maples, con salida al este'],
-  ['Crecimiento','Sin reserva definida','Lugar reservado para un pasteurizador mayor en el salón sur']];
- $('#tLayCmp').innerHTML='<thead><tr><th>Indicador</th><th>Layout inicial</th><th>Layout ideal</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="color:var(--fut)">${r[2]}</td></tr>`).join('')+'</tbody>';
- const mv=[
-  ['Expedición de pallets al norte','Puerta y andén en la cámara 2 °C','El producto terminado deja de salir por el frente donde entra el huevo y sale la cáscara','Ubicación de columnas; radio de giro en patio norte'],
-  ['Carga de cisterna al oeste','Boca de carga en el muro oeste, entre el CIP y el chiller','Cañería de pocos metros desde los tanques terminados; lavado de cisterna con el mismo CIP','Ancho libre real del lateral oeste (≈ 10 m en plano) y maniobra en reversa'],
-  ['Sala de quebrado única','Unir transferencia y la banda de quebrado; cerrar con muro hacia el oeste','Lugar para cargador + OptiBreaker en línea; el huevo entra por el sur y la cáscara sale al este','Largo, ancho y servicios de la máquina (ficha técnica)'],
-  ['Sala de crudos','Dos muros nuevos entre quebrado y pasteurización','Filtros, enfriadores, tres tanques crudos y el blend quedan pegados a la quebradora y fuera de la zona limpia','Volumen final de tanques según mix comercial'],
-  ['Tanques terminados al muro oeste','Reubicar o instalar tres tanques en el salón sur','Línea corta a cisterna y a envasado; queda piso libre para un pasteurizador mayor','Inventario de tanques actuales y cuáles se reutilizan'],
-  ['Sala de cáscara','La actual expedición pasa a centrífuga y tolva','La cáscara sale directo al este sin pisar zona limpia','Kg/día reales y destino (descarte o harina)'],
-  ['Maples y no conforme','Ordenar la sala actual con salida propia al este','Se termina el cruce de cartones con la descarga de huevo','Homologación de cajones y cantidad en circulación'],
-  ['Depósito de huevo','Racks de 2 niveles que se cargan desde la playa (este) y se retiran del lado de la quebradora (oeste)','Alcanza las posiciones requeridas sin agrandar la nave y hace el FIFO físico: lo primero que entra es lo primero que sale','Carga admisible del piso y altura libre'],
-  ['Filtro sanitario con dos salidas','Puertas separadas a zona limpia y a quebrado','El personal de quebrado no atraviesa pasteurización ni envasado','Dotación por turno y vestuarios'],
-  ['Envasado más ancho','Correr el tabique con insumos','Entran tres productos y bins; ingreso desde alta higiene y pasa-insumos','Formatos y volúmenes por producto'],
-  ['Aire y desagües','Presión mayor en alta higiene que en crudos, quebrado y recepción; desagües de limpio a sucio','Evita que aire o agua de la zona sucia lleguen al pasteurizado','Relevamiento de ventilación y pendientes']];
- $('#tMoves').innerHTML='<thead><tr><th>Cambio</th><th>Obra</th><th>Qué resuelve</th><th>Dato que falta</th></tr></thead><tbody>'+mv.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td class="note">${r[3]}</td></tr>`).join('')+'</tbody>';
- const act=cF.S.filter(s=>cF.q[s]>0),tk=[];
- act.forEach(s=>tk.push(['TK-101'+s,PN[s]+' crudo',cF.tkC[s],'Sala de crudos (5)','Al lado de la quebradora: línea de crudo mínima y enfriado inmediato']));
- tk.push(['TK-301','Blend (huevo + sal)',null,'Sala de crudos (5)','La mezcla se hace antes de pasteurizar; volumen sin dato']);
- act.forEach(s=>tk.push(['TK-201'+s,PN[s]+' pasteurizado',cF.tkP[s],'Salón sur, muro oeste (4)','A metros de la boca de cisterna y con línea directa a envasado']));
+  ['Producto no conforme','Sin sector',`Sector propio junto a maples, en ${nm('map')}, con salida al este`],
+  ['Crecimiento','Sin reserva definida',freeTx]];
+ $('#tLayCmp').innerHTML='<thead><tr><th>Indicador</th><th>Layout inicial</th><th>'+LN+'</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="color:var(--fut)">${r[2]}</td></tr>`).join('')+'</tbody>';
+ const OB={dep:['Racks de '+fmt(V('nivRack'))+' niveles cargados desde la playa este y retirados del lado de la quebradora (FIFO físico)','Carga admisible del piso y altura libre'],que:['Instalar cargador y OptiBreaker en línea; desagües, aire comprimido y salida de cáscara','Plano de implantación y servicios de la máquina'],cru:['Sala cerrada con piso sanitario; tanques crudos, blend, filtros y enfriadores; cañerías a quebradora y pasteurizador','Volumen final de tanques según mix comercial'],pas:['Pasteurizadora con vapor, agua helada y CIP; desvío de flujo del PCC','Cotización y dimensiones de la pasteurizadora nueva'],tkp:['Tanques terminados con línea a cisterna y a envasado','Inventario de tanques actuales que se reutilizan'],env:['Envasadora con pasa-insumos desde la sala de insumos','Formatos y volúmenes por producto'],cam:['Cámara con puerta al frente '+(INF.vw==='N'?'norte':'oeste')+' para el reparto','Capacidad de frío y aislamiento si se mueve'],ins:['Estanterías y acceso desde el frente '+(INF.ins==='N'?'norte':'oeste'),'Volumen de insumos en stock'],cas:['Centrífuga y tolva con salida directa al patio este','Kg/día reales y destino (descarte o harina)'],map:['Sector delimitado para maples y no conforme con salida al este','Homologación de cajones y cantidad en circulación']};
+ const mv=DP.map(d=>{const same=HOYM[d.id].length&&X[d.id].bl.length===HOYM[d.id].length&&X[d.id].bl.every(b=>HOYM[d.id].includes(b));return [d.n,HOYT[d.id],nm(d.id)+` (${fmt(X[d.id].a)} m²)`,same?'Se mantiene; '+OB[d.id][0].charAt(0).toLowerCase()+OB[d.id][0].slice(1):OB[d.id][0],OB[d.id][1],same];});
+ mv.push(['Filtro sanitario','Un paso común','Dos salidas: zona limpia y quebrado','Puertas separadas; el personal de quebrado no atraviesa alta higiene','Dotación por turno y vestuarios',false],['Aire y desagües','Sin dato','Cascada de presiones','Presión mayor en alta higiene que en crudos, quebrado y recepción; desagües de limpio a sucio','Relevamiento de ventilación y pendientes',false]);
+ $('#tMoves').innerHTML='<thead><tr><th>Área</th><th>Hoy</th><th>'+LN+'</th><th>Obra</th><th>Dato que falta</th></tr></thead><tbody>'+mv.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td style="color:var(--fut)">${r[2]}</td><td>${r[5]?'<span class="chip d">se mantiene</span> ':''}${r[3]}</td><td class="note">${r[4]}</td></tr>`).join('')+'</tbody>';
+ const act=cF.S.filter(s=>cF.q[s]>0),tk=[],why1=adj('cru','que')?'Pared compartida con quebrado: línea de crudo mínima y enfriado inmediato':'No comparte pared con quebrado: la línea de crudo cruza otra sala',why2=adj('tkp','pas')?'Pared compartida con pasteurización; línea directa a cisterna y envasado':'No comparte pared con pasteurización';
+ act.forEach(s=>tk.push(['TK-101'+s,PN[s]+' crudo',cF.tkBaseC?cF.tkBaseC[s]:cF.tkC[s],nm('cru'),why1]));
+ for(let i=0;i<V('tkExtraC');i++)tk.push(['TK-101R'+(i+1),'Crudo de reserva (ampliación)',null,nm('cru'),'Reserva de diseño']);
+ tk.push(['TK-301','Blend (huevo + sal)',null,nm('cru'),'La mezcla se hace antes de pasteurizar; volumen sin dato']);
+ act.forEach(s=>tk.push(['TK-201'+s,PN[s]+' pasteurizado',cF.tkBaseP?cF.tkBaseP[s]:cF.tkP[s],nm('tkp'),why2]));
+ for(let i=0;i<V('tkExtraP');i++)tk.push(['TK-201R'+(i+1),'Terminado de reserva (ampliación)',null,nm('tkp'),'Reserva de diseño']);
  $('#tTanks').innerHTML='<thead><tr><th>Tanque</th><th>Producto</th><th class="n">Volumen (L)</th><th class="n">Diámetro (m)</th><th>Ubicación</th><th>Por qué ahí</th></tr></thead><tbody>'+tk.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="n">${r[2]?fmt(r[2]):'s/d'}</td><td class="n">${r[2]?fmt(tankD(r[2]),2):'s/d'}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')+'</tbody>';
- const need=act.reduce((a,s)=>a+tankD(cF.tkC[s]),0)+.3*(act.length+1);
- $('#tankFit').innerHTML=`<div class="fnd ${need<=5?'g':'b'}" style="margin-top:10px"><b>${need<=5?'Los tanques crudos entran en la sala de crudos':'Los tanques crudos no entran en fila en la sala de crudos'}</b><p>En fila ocupan ${fmt(need,1)} m de los 5,0 m disponibles (con 0,3 m de paso entre tanques). ${need<=5?'':'Con este escenario hay que disponerlos en dos filas o agrandar la sala hacia el salón de pasteurización.'}</p></div>`;
+ const okC=X.cru.a>=OPT.req.cru-1e-6,okP=X.tkp.a>=OPT.req.tkp-1e-6;
+ $('#tankFit').innerHTML=`<div class="fnd ${okC&&okP?'g':'b'}" style="margin-top:10px"><b>${okC&&okP?'Los tanques entran en las salas asignadas':'Los tanques no entran en las salas asignadas'}</b><p>Crudos: necesitan ${fmt(OPT.req.cru,1)} m² y ${LN} asigna ${fmt(X.cru.a,1)} m². Terminados: necesitan ${fmt(OPT.req.tkp,1)} m² y tienen ${fmt(X.tkp.a,1)} m². Incluye los tanques de reserva y la circulación.</p></div>`;
  const pr=[
-  ['Un solo sentido, de sucio a limpio, sin retrocesos','Regla base de diseño higiénico y esquema de las líneas llave en mano: recepción → quebrado → crudo → pasteurización → tanques → envasado','Recorrido en U: entra y sale por el este','Lineal de este a oeste; lo limpio sale por norte y oeste'],
-  ['Quebrado en sala propia','Las normas de ovoproductos piden separar las operaciones sucias del cascado y del producto expuesto','Compartido con pasteurización (a verificar)','Sala de quebrado cerrada'],
-  ['Crudo y pasteurizado en ambientes distintos','El pasteurizado no vuelve a compartir aire, piso ni personal con el crudo','Tanques y pasteurizador en un mismo salón','Sala de crudos separada del salón de alta higiene'],
-  ['Aire de limpio a sucio','Salas de proceso presurizadas para que el aire salga hacia afuera (guía de planos USDA-FSIS)','Sin dato','Cascada de presiones definida'],
-  ['Tanques junto al equipo que los llena y al que los vacía','Menos cañería = menos producto retenido, CIP más corto y menos calentamiento','Ubicación sin plano','Crudos junto a la quebradora; terminados junto a la cisterna'],
-  ['Residuos por el lado sucio','Cáscara y maples salen sin cruzar producto terminado','Misma salida que el producto','Salidas propias al este'],
-  ['Muelles separados','Materia prima y producto terminado en frentes distintos','Un solo frente','Tres frentes'],
+  ['Un solo sentido, de sucio a limpio, sin retrocesos','Regla base de diseño higiénico y esquema de las líneas llave en mano: recepción → quebrado → crudo → pasteurización → tanques → envasado','Recorrido en U: entra y sale por el este',(xd.length?xd.length+' cruces en piso':'Sin cruces en piso')+'; '+INF.fronts],
+  ['Quebrado en sala propia','Las normas de ovoproductos piden separar las operaciones sucias del cascado y del producto expuesto','Compartido con pasteurización (a verificar)','Sala propia en '+nm('que')],
+  ['Crudo y pasteurizado en ambientes distintos','El pasteurizado no vuelve a compartir aire, piso ni personal con el crudo','Tanques y pasteurizador en un mismo salón','Crudos en '+nm('cru')+'; pasteurizado en '+nm('pas')+' y '+nm('tkp')],
+  ['Aire de limpio a sucio','Salas de proceso presurizadas para que el aire salga hacia afuera (guía de planos USDA-FSIS)','Sin dato','Cascada de presiones a definir en el proyecto'],
+  ['Tanques junto al equipo que los llena y al que los vacía','Menos cañería = menos producto retenido, CIP más corto y menos calentamiento','Ubicación sin plano',(adj('cru','que')?'Crudos pegados a quebrado':'Crudos sin pared común con quebrado')+'; '+(adj('tkp','pas')?'terminados pegados a pasteurización':'terminados sin pared común con pasteurización')],
+  ['Residuos por el lado sucio','Cáscara y maples salen sin cruzar producto terminado','Misma salida que el producto','Salidas propias al patio este (regla del cálculo)'],
+  ['Muelles separados','Materia prima y producto terminado en frentes distintos','Un solo frente',INF.nFront+' frentes'],
   ['Personal por zona','Ingreso y vestimenta diferenciados para zona limpia y zona sucia','Un paso común','Filtro con dos salidas'],
-  ['Lugar para crecer','Reserva en el sentido del flujo','Sin reserva','Reserva para pasteurizador mayor']];
- $('#tPrin').innerHTML='<thead><tr><th>Principio</th><th>Práctica de referencia</th><th>Layout inicial</th><th>Layout ideal</th></tr></thead><tbody>'+pr.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td style="color:var(--fut)">${r[3]}</td></tr>`).join('')+'</tbody>';
- const vl=[['i','Qué se puede afirmar hoy','El layout propuesto cumple los principios de la tabla, elimina los '+xi.length+' cruces en piso del trazado inicial y acorta las cañerías de producto. Es la mejor disposición que surge de los datos disponibles, no un óptimo certificado.'],
-  ['w','Ficha técnica y plano de implantación de la OptiBreaker Basic 6','Largo y ancho con cargador, lado de salida de producto y de cáscara, servicios. Define si la sala de quebrado de '+fmt(qa)+' m² alcanza.'],
-  ['w','Plano acotado y estructura','Columnas, muros portantes, alturas y pendientes de piso: condicionan los muros nuevos y las puertas al norte y al oeste.'],
+  ['Lugar para crecer','Reserva en el sentido del flujo','Sin reserva',freeTx]];
+ $('#tPrin').innerHTML='<thead><tr><th>Principio</th><th>Práctica de referencia</th><th>Layout inicial</th><th>'+LN+'</th></tr></thead><tbody>'+pr.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td style="color:var(--fut)">${r[3]}</td></tr>`).join('')+'</tbody>';
+ const vl=[['i','Qué se puede afirmar hoy',`${lk==='opt'?'La alternativa 2 es la mejor asignación de áreas a los módulos del edificio actual según el orden higiene → relaciones A → momento de transporte, con los datos cargados.':lk==='slp'?'La alternativa 1 es la asignación con mayor puntaje de cercanías entre las factibles, con los datos cargados.':'El propuesto original se diseñó a mano: no surge del cálculo y '+(OPT.pv.length?'no entra con la base de diseño con ampliación.':'entra con la base de diseño.')} ${xi.length>xd.length?'Reduce los cruces en piso de '+xi.length+' a '+xd.length+'.':'Cruces en piso: '+xd.length+'.'} ${lk==='ide'?'Superficies y relaciones evaluadas sobre los módulos del edificio (aproximación del plano dibujado).':'Ubicación de equipos y recorridos dentro de cada sala: estimada.'}`],
+  ['w','Ficha técnica y plano de implantación de la OptiBreaker Basic 6','Largo y ancho con cargador, lado de salida de producto y de cáscara, servicios. Define si la sala de quebrado de '+fmt(X.que.a)+' m² alcanza.'],
+  ['w','Plano acotado y estructura','Columnas, muros portantes, alturas y pendientes de piso: condicionan los muros nuevos y las puertas a los frentes.'],
   ['w','Consulta a SENASA','Esquema de salas, sentidos de circulación, cámara de producto terminado y venta cruda, antes de proyectar la obra.'],
-  ['w','Maniobra de camiones','Radio de giro de la cisterna en el lateral oeste y del reparto en el patio norte; el terreno de 50 × 200 m permite un camino perimetral.'],
+  ['w','Maniobra de camiones','Radio de giro de cisterna y reparto en los frentes '+INF.fronts.toLowerCase()+'; el terreno de 50 × 200 m permite un camino perimetral.'],
   ['w','Mix comercial y volúmenes de tanques','Mientras no se cierre cuánta yema, clara y entero se vende, los tanques son provisorios.'],
   ['w','Costo de obra','Comparar esta alternativa con una de mínima inversión dentro de la evaluación económico-financiera.']];
  $('#layVal').innerHTML=vl.map(x=>`<div class="fnd ${x[0]}"><b>${x[1]}</b><p>${x[2]}</p></div>`).join('');
 }
-$('#bLenReset').onclick=()=>{LENOV={ini:{},ide:{}};logAdd('Recorridos: se vuelve a las medidas del plano');save();scoreView();params();};
-$$('[data-lay]').forEach(b=>b.onclick=()=>{layMode=b.dataset.lay;$$('[data-lay]').forEach(x=>x.classList.toggle('on',x===b));buildPlan();});
+$('#bLenReset').onclick=()=>{LENOV={ini:{},ide:{},opt:{},slp:{},sig:LENOV.sig||{}};logAdd('Recorridos: se vuelve a las medidas del plano');save();scoreView();params();};
+$$('[data-lay]').forEach(b=>b.onclick=()=>{layMode=b.dataset.lay;if(layMode!=='ini')lastSel=layMode;$$('[data-lay]').forEach(x=>x.classList.toggle('on',x===b));buildPlan();layTables();frame.dirty=true;});
 $('#layLg').addEventListener('change',e=>{const k=e.target.dataset.lyr;if(!k)return;hidL[k]=!e.target.checked;$$('#plan .lyr-'+k).forEach(x=>x.style.display=hidL[k]?'none':'');});
 
 /* ===== INFORME DE BALANCE DE MASA (pestaña + PDF) ===== */
@@ -1264,7 +1263,7 @@ async function genPdf(){
 }
 $('#bPdf').onclick=genPdf;$('#bPrint').onclick=()=>{repRender();try{window.print();}catch(e){$('#pdfMsg').textContent='Esta vista no permite imprimir: abrí el archivo HTML en el navegador.';}};
 
-const rstEsc=()=>{Object.entries(PRE.A).forEach(([k,v])=>PAR.find(p=>p.id===k).v=v);PAR.find(p=>p.id==='f_sep').v=PAR.find(p=>p.id==='f_sep').d;$$('[data-pre]').forEach(x=>x.classList.toggle('on',x.dataset.pre==='A'));layMode='ide';$$('[data-lay]').forEach(x=>x.classList.toggle('on',x.dataset.lay==='ide'));Object.keys(hidL).forEach(k=>hidL[k]=false);$$('#layLg input').forEach(x=>x.checked=true);gSc='A';$$('[data-g]').forEach(x=>x.classList.toggle('on',x.dataset.g==='A'));logAdd('Se volvió al escenario base (F1)');save();params.done=false;recompute();};
+const rstEsc=()=>{Object.entries(PRE.A).forEach(([k,v])=>PAR.find(p=>p.id===k).v=v);PAR.find(p=>p.id==='f_sep').v=PAR.find(p=>p.id==='f_sep').d;$$('[data-pre]').forEach(x=>x.classList.toggle('on',x.dataset.pre==='A'));layMode='opt';lastSel='opt';$$('[data-lay]').forEach(x=>x.classList.toggle('on',x.dataset.lay==='opt'));Object.keys(hidL).forEach(k=>hidL[k]=false);$$('#layLg input').forEach(x=>x.checked=true);gSc='A';$$('[data-g]').forEach(x=>x.classList.toggle('on',x.dataset.g==='A'));logAdd('Se volvió al escenario base (F1)');save();params.done=false;recompute();};
 [['actual','s'],['futuro','se'],['ideal','se'],['balance','e'],['logistica','e'],['inventario','e'],['layout','e'],['riesgos','e']].forEach(([v,m])=>{const d=document.createElement('div');d.className='ctl rstbar';if(!m.includes('e'))return;d.innerHTML='<button data-rst="esc" title="Deshace los escenarios rápidos y vuelve a F1">Volver al escenario base (F1)</button>';$('#v-'+v).prepend(d);});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-rst]');if(!b)return;rstEsc();});
 $('#bSave').addEventListener('click',()=>{save();if(SAVEOK)$('#savedAt').textContent='Grabado: '+new Date(SAVED).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'medium'});});showSaved();
@@ -1318,13 +1317,122 @@ function slpSvg(A,req){
 }
 const MPAR=['expPast','tkExtraC','tkExtraP','aQueb','aPast','aEnv','aCam','aIns','aCasc','aMap','nivRack','exigA','exigH','fixCam'];
 const hConn=A=>{const g=['pas','tkp','env'].map(d=>A[d]),seen=[0],q=[0];while(q.length){const i=q.pop();g.forEach((x,j)=>{if(!seen.includes(j)&&(g[i].adj&x.m)){seen.push(j);q.push(j);}});}return seen.length===3;};
-function metodoRender(){
- if(!RF)return;if(!RX||RX.base!==RF.c||RX.ep!==V('expPast'))RX={base:RF.c,ep:V('expPast'),r:run('F',{past:V('expPast')/60})};
+/* ===== PLANO GENERADO DESDE LA ALTERNATIVA 2 (QAP) =====
+   Cada área ocupa los módulos que le asignó el QAP; equipos, tanques y recorridos se ubican dentro de esos módulos. */
+const HOYM={dep:[11,12],que:[5,9],cru:[],pas:[3,4,7,8],tkp:[],env:[1],cam:[2],ins:[0],cas:[],map:[10]};
+const HOYT={dep:'Recepción y depósito (sureste)',que:'Banda de quebrado abierta y transferencia',cru:'Sin sala propia: tanques en el salón de pasteurización',pas:'Salón oeste',tkp:'Salón oeste, sin ubicación definida',env:'Sala norte central',cam:'Esquina noreste',ins:'Esquina noroeste',cas:'Sin sala propia',map:'Sala de maples y desecho'};
+function genLayout(A){
+ const mods=d=>A[d].bl.map(i=>BL[i]),big=d=>mods(d).slice().sort((x,y)=>y.a-x.a)[0];
+ const bbox=d=>{const b=mods(d),x0=Math.min(...b.map(q=>q.x)),y0=Math.min(...b.map(q=>q.y)),x1=Math.max(...b.map(q=>q.x+q.w)),y1=Math.max(...b.map(q=>q.y+q.h));return {x:x0,y:y0,w:x1-x0,h:y1-y0};};
+ const reg=d=>{const bb=bbox(d),ar=mods(d).reduce((s,q)=>s+q.a,0);if(Math.abs(ar-bb.w*bb.h)<.5)return bb;const B=big(d);return {x:B.x,y:B.y,w:B.w,h:B.h};};
+ const ctr=R=>[R.x+R.w/2,R.y+R.h/2];
+ const line=(R,items,toward)=>{const hz=R.w>=R.h,Ln=hz?R.w:R.h,cs=hz?R.y+R.h/2+.4:R.x+R.w/2,tot=items.reduce((s,it)=>s+it.l,0)+.5*(items.length-1),atMax=toward?(hz?toward[0]>R.x+R.w/2:toward[1]>R.y+R.h/2):false;let u=(hz?R.x:R.y)+Math.max(.3,(Ln-tot)/2);const ord=atMax?items.slice().reverse():items;return ord.map(it=>{const c=u+it.l/2;u+=it.l+.5;return Object.assign({},it,hz?{cx:c,cy:cs,hz}:{cx:cs,cy:c,hz});});};
+ const eqR=p=>({t:p.t,x:p.cx-(p.hz?p.l:p.s)/2,y:p.cy-(p.hz?p.s:p.l)/2,w:p.hz?p.l:p.s,h:p.hz?p.s:p.l});
+ const route=(...pts)=>{const o=[];const push=p=>{const l=o[o.length-1];if(!l||Math.abs(l[0]-p[0])>1e-6||Math.abs(l[1]-p[1])>1e-6)o.push([p[0],p[1]]);};pts.forEach((p,i)=>{if(i)push([p[0],pts[i-1][1]]);push(p);});return o;};
+ const rooms=[],own={};
+ DP.forEach((d,i)=>{const B=big(d.id);mods(d.id).forEach(b=>{own[b.i]=1;const isB=b===B;rooms.push({n:isB?i+1:undefined,t:isB?[B.w>=6.5?d.n:({pas:'Pasteurización',tkp:'Tanques PT',map:'Maples'}[d.id]||d.s)]:[],z:d.z,new:!HOYM[d.id].includes(b.i),p:R4(b.x,b.y,b.w,b.h),at:isB?[b.cx,b.y+1.1]:undefined,ar:A[d.id].a,sm:B.w<5});});});
+ BL.filter(b=>!own[b.i]).forEach(b=>rooms.push({t:['Reserva',fmt(b.a)+' m²'],z:'x',p:R4(b.x,b.y,b.w,b.h),at:[b.cx,b.cy],sm:1}));
+ rooms.push({t:['Filtro sanitario'],z:'p',p:R4(8.75,9.75,2.1,14.7),rot:1,at:[9.8,18.5]});OFF.forEach(o=>rooms.push(o));
+ const depC=[A.dep.cx,A.dep.cy],cs=c=>RF.c.q[c]>0;
+ const qe=line(reg('que'),[{t:'Cargador',l:2.8,s:1.8},{t:'OptiBreaker',l:4.6,s:2.2}],depC),Cg=[qe.find(x=>x.t==='Cargador').cx,qe.find(x=>x.t==='Cargador').cy],Q=[qe.find(x=>x.t==='OptiBreaker').cx,qe.find(x=>x.t==='OptiBreaker').cy];
+ const pe=line(reg('pas'),[{t:'Pasteurizador',l:4.6,s:1.3}])[0],PasC=[pe.cx,pe.cy];
+ const ee=line(reg('env'),[{t:'Envasadora',l:1.8,s:1.1}])[0],EnvC=[ee.cx,ee.cy];
+ const ce=line(reg('cas'),[{t:'Centríf.',l:1.3,s:1.3}])[0],CasC=[ce.cx,ce.cy];
+ const tv=(k,pt)=>pt?RF.c.tkP[k]:RF.c.tkC[k],dia=v=>Math.max(.9,tankD(v));
+ const cr=line(reg('cru'),[...['E','Y','C'].map(k=>({id:'r'+k,k,l:dia(tv(k)),lb:k})),{id:'bl',l:dia(1000),lb:'Blend'}],Q);
+ const pt=line(reg('tkp'),['E','Y','C'].map(k=>({id:'p'+k,k,pt:1,l:dia(tv(k,1)),lb:'PT '+k})),PasC);
+ const tanks=cr.concat(pt).map(t=>({id:t.id,k:t.k,pt:t.pt,x:t.cx,y:t.cy,l:t.lb,la:0}));
+ const Tp=id=>{const t=tanks.find(x=>x.id===id);return [t.x,t.y];},crC=ctr(reg('cru')),ptC=[pt.reduce((s,t)=>s+t.cx,0)/pt.length,pt.reduce((s,t)=>s+t.cy,0)/pt.length];
+ const CamC=[A.cam.cx,A.cam.cy],InsC=[A.ins.cx,A.ins.cy],MapC=[A.map.cx,A.map.cy];
+ const cis=A.tkp.cx<=A.tkp.cy?'O':'N',vw=A.cam.fac.includes('N')?'N':'O',ins=A.ins.fac.includes('N')?'N':'O';
+ const out=(side,p)=>side==='N'?[p[0],-3.2]:[-3.4,p[1]];
+ const flows=[
+  {id:'huevo',k:'huevo',on:'mp',d:route([23.5,depC[1]],depC,Cg)},
+  ...['E','Y','C'].map(k=>({id:'c'+k,k:'crudo',on:'q',s:k,d:route(Q,Tp('r'+k))})),
+  {id:'feed',k:'crudo',on:'p',d:route(crC,PasC)},
+  {id:'past',k:'past',on:'p',d:route(PasC,ptC)},
+  {id:'granel',k:'past',on:'ci',d:route(ptC,out(cis,ptC))},
+  {id:'toenv',k:'past',on:'es',d:route(ptC,EnvC)},
+  {id:'palpt',k:'palpt',on:'es',d:route(EnvC,CamC,out(vw,CamC))},
+  {id:'env',k:'env',on:'es',d:route(out(ins,InsC),InsC,EnvC)},
+  {id:'casc',k:'casc',on:'q',d:route(Q,CasC,[21.8,CasC[1]])},
+  {id:'map',k:'map',on:'q',d:route(Cg,MapC,[21.8,MapC[1]])},
+  {id:'perL',k:'perL',on:'sh',d:route([9.4,26.3],[9.4,PasC[1]],PasC)},
+  {id:'perS',k:'perS',on:'sh',d:route([10.2,26.3],[10.2,Cg[1]],Cg)}];
+ const R2=R=>[R.x,R.y,R.w,R.h],trucks=[{id:'mp',l:'Camión huevo',p:[23.6,depC[1]-5.5,2.6,11]},cis==='O'?{id:'ci',l:'Cisterna',p:[-6.2,ptC[1]-6.3,2.6,12.6]}:{id:'ci',l:'Cisterna',p:[ptC[0]-6.3,-6.2,12.6,2.6],hz:1},vw==='N'?{id:'vw',l:'Reparto',p:[CamC[0]-1.3,-8.4,2.6,5.2]}:{id:'vw',l:'Reparto',p:[-8.4,CamC[1]-1.3,5.2,2.6],hz:1}];
+ const side={N:[],O:[]};side[cis].push('cisterna');side[vw].push('pallets terminados');side[ins].push('insumos');
+ const yard=[[28.2,10,'PATIO SUCIO (ESTE): huevo, cáscara, maples',1]];if(side.N.length)yard.push([8,-6.6,'FRENTE NORTE: '+side.N.join(', ')]);if(side.O.length)yard.push([-8.4,12,'FRENTE OESTE: '+side.O.join(', '),1]);
+ const fronts='Este = huevo, cáscara y maples'+(side.N.length?' · Norte = '+side.N.join(', '):'')+(side.O.length?' · Oeste = '+side.O.join(', '):'');
+ return {gen:1,rooms,labels:[],eq:qe.concat([pe,ee,ce]).map(eqR),tanks,flows,trucks,yard,bn:{P:R2(reg('pas')),T:R2(bbox('tkp')),D:R2(bbox('dep')),E:R2(reg('env')),C:R2(bbox('cam'))},dep:[depC[0],depC[1]+2],cam:[CamC[0],CamC[1]+1.4],info:{fronts,nFront:1+(side.N.length?1:0)+(side.O.length?1:0),cis,vw,ins}};
+}
+
+/* ===== COMPARACIÓN DE LOS TRES LAYOUTS ===== */
+const LNAME={opt:'Alternativa 2 (QAP)',slp:'Alternativa 1 (SLP)',ide:'Propuesto original',ini:'Inicial (hoy)'};
+let lastSel='opt';
+const LK=()=>{const k=layMode==='ini'?lastSel:layMode;return LAY[k]?k:(LAY.opt?'opt':'ide');};
+const asgOf=k=>!OPT?null:k==='opt'?(OPT.best?OPT.best.A:null):k==='slp'?(OPT.res.slp?OPT.res.slp.A:null):k==='ide'?OPT.P:null;
+const keyOfL=k=>!OPT?null:k==='opt'?(OPT.best?OPT.best.k:null):k==='slp'?(OPT.res.slp?OPT.res.slp.k:null):k==='ide'?OPT.pk:null;
+function metr(key){const k=RF.k,c=RF.c,A=Math.PI*(V('dPipe')/1000)**2/4*1000,o={mom:0,hold:0,tr:0};
+ FLW.forEach(([id,n,q,cau])=>{const m=flowLen(key,id),kg=q?q(k,c):null,Q=cau?cau(c):0;if(kg!==null&&kg>0)o.mom+=kg*m/1000;if(cau&&Q>0){o.hold+=m*A;if(['cE','feed','past','granel'].includes(id))o.tr+=m*A/Q*3600;}});
+ o.fork=k.palDia*2*flowLen(key,'huevo');o.x=crosses(LAY[key]).length;return o;}
+function reqOk(key){const b=metr('ini'),m=metr(key);return [m.mom<b.mom,m.hold<b.hold,m.tr<b.tr,m.fork<=b.fork,m.x===0,(LAY[key].info||{nFront:1}).nFront>1,true].filter(Boolean).length;}
+function cmp3(){
+ const el=$('#tCmp3');if(!el)return;
+ if(!OPT||!RF){el.innerHTML='<tbody><tr><td>Calculando…</td></tr></tbody>';return;}
+ const K=['ide','slp','opt'].filter(k=>LAY[k]&&asgOf(k)),M=Object.fromEntries(['ini',...K].map(k=>[k,metr(k)])),nA=OPT.nA;
+ const free=A=>BL.filter(b=>!DP.some(d=>A[d.id].m&(1<<b.i))).reduce((s,b)=>s+b.a,0);
+ const moved=A=>DP.filter(d=>!(A[d.id].bl.length===HOYM[d.id].length&&A[d.id].bl.every(b=>HOYM[d.id].includes(b)))).length;
+ const fits=k=>k==='ide'?!OPT.pv.length:true;
+ const R=[
+  ['Momento de transporte','t·m/día',k=>M[k].mom,'min',v=>fmt(v,1),1],
+  ['Producto retenido en cañerías','L',k=>M[k].hold,'min',v=>fmt(v),1],
+  ['Tránsito en cañería quebradora → cisterna','s',k=>M[k].tr,'min',v=>fmt(v),1],
+  ['Recorrido del autoelevador con huevo','m/día',k=>M[k].fork,'min',v=>fmt(v),1],
+  ['Cruces de recorridos en piso','',k=>M[k].x,'min',v=>fmt(v),1],
+  ['Frentes de camión separados','',k=>(LAY[k].info||{nFront:1}).nFront,'max',v=>fmt(v),1],
+  ['Zona de alta higiene','',k=>keyOfL(k).h,'min',v=>v?'partida':'contigua'],
+  ['Relaciones A con pared compartida','',k=>nA-keyOfL(k).a,'max',v=>`${v} de ${nA}`],
+  ['Puntaje de cercanías (SLP)','pts',k=>keyOfL(k).sp,'max',v=>fmt(v)],
+  [`Momento de diseño (QAP, pasteurizadora de ${fmt(V('expPast'))} L/h)`,'t·m/día',k=>keyOfL(k).c,'min',v=>fmt(v,1)],
+  ['Entra con la ampliación (superficies)','',k=>fits(k)?1:0,'max',v=>v?'sí':'no'],
+  ['Reserva libre para crecer','m²',k=>free(asgOf(k)),'max',v=>fmt(v)],
+  ['Áreas que cambian de lugar (obra)','',k=>moved(asgOf(k)),'min',v=>fmt(v)],
+  ['Requisitos cumplidos frente a hoy','',k=>reqOk(k),'max',v=>`${v} de 7`]];
+ const pros={},cons={};K.forEach(k=>{pros[k]=[];cons[k]=[];});
+ const body=R.map(([lab,u,f,b,fm,ini])=>{const vals=Object.fromEntries(K.map(k=>[k,f(k)])),arr=K.map(k=>vals[k]),best=b==='min'?Math.min(...arr):Math.max(...arr),worst=b==='min'?Math.max(...arr):Math.min(...arr),allEq=Math.abs(best-worst)<1e-6;
+  const cell=k=>{const v=vals[k],isB=!allEq&&Math.abs(v-best)<1e-6,isW=!allEq&&Math.abs(v-worst)<1e-6;if(isB)pros[k].push(`${lab}: ${fm(v)}${u?' '+u:''}`);if(isW)cons[k].push(`${lab}: ${fm(v)}${u?' '+u:''}`);return `<td class="n" style="${isB?'background:#DFF3E6;font-weight:700':isW?'background:#FDE3E1':''}">${fm(v)}</td>`;};
+  return `<tr><td>${lab}${u?` <span class="note">(${u})</span>`:''}</td><td class="n">${ini?fm(lab.startsWith('Frentes')?1:f('ini')):'—'}</td>${K.map(cell).join('')}</tr>`;}).join('');
+ const ord=K.slice().sort((a,b)=>{const fa=fits(a),fb=fits(b);if(fa!==fb)return fa?-1:1;const x=keyOfL(a),y=keyOfL(b);return kLess(x,y)?-1:kLess(y,x)?1:0;});
+ const rank=k=>fits(k)?(ord.indexOf(k)+1)+'.º':'fuera (no entra)';
+ const li=a=>a.length?'<ul style="margin:0;padding-left:16px">'+a.map(x=>`<li>${x}</li>`).join('')+'</ul>':'<span class="note">—</span>';
+ el.innerHTML=`<thead><tr><th>Indicador</th><th class="n">${LNAME.ini}</th>${K.map(k=>`<th class="n" style="${k===LK()?'outline:2px solid var(--fut)':''}">${LNAME[k]}${k===LK()?' · en vista':''}</th>`).join('')}</tr></thead><tbody>${body}
+  <tr><td><b>Puesto en el orden del cálculo</b> <span class="note">(higiene → A → momento de diseño)</span></td><td class="n">—</td>${K.map(k=>`<td class="n"><b>${rank(k)}</b></td>`).join('')}</tr>
+  <tr><td><b>Ventajas</b> <span class="note">(mejor de los tres)</span></td><td></td>${K.map(k=>`<td style="vertical-align:top;font-size:13px">${li(pros[k])}</td>`).join('')}</tr>
+  <tr><td><b>Desventajas</b> <span class="note">(peor de los tres)</span></td><td></td>${K.map(k=>`<td style="vertical-align:top;font-size:13px">${li(cons[k])}</td>`).join('')}</tr></tbody>`;
+ const f=[];
+ if(OPT.res.slp&&OPT.best&&DP.every(d=>OPT.res.slp.A[d.id].m===OPT.best.A[d.id].m))f.push(['i','Con estos datos el SLP y el QAP eligen lo mismo','Las alternativas 1 y 2 tienen la misma asignación de áreas: la comparación entre ellas no muestra diferencias.']);
+ if(OPT.pv.length)f.push(['b','El propuesto original no entra con la ampliación',OPT.pv.join('. ')+'.']);
+ f.push(['w','Dos formas de medir el transporte','Las primeras cinco filas usan los flujos de hoy y los recorridos dibujados en cada plano; el momento de diseño usa los flujos con la pasteurizadora de diseño y la distancia entre centros de área. Pueden no coincidir: el cálculo del QAP elige con la segunda.']);
+ f.push(['i','Cómo leer la tabla','Verde = mejor de los tres; rosado = peor de los tres; sin color = empate. La columna marcada es la que se ve en el plano y la que alimenta el resto de los indicadores de la pestaña.']);
+ $('#cmp3Txt').innerHTML=f.map(x=>`<div class="fnd ${x[0]}"><b>${x[1]}</b><p>${x[2]}</p></div>`).join('');
+}
+
+let OPT=null;
+function optCompute(){
+ if(!RF)return null;const key=JSON.stringify([MPAR.map(id=>V(id)),RELOV,V('cobObj'),V('palM2'),V('fPas'),V('camMP')]);if(OPT&&OPT.base===RF.c&&OPT.key===key)return OPT;
+
+if(!RX||RX.base!==RF.c||RX.ep!==V('expPast'))RX={base:RF.c,ep:V('expPast'),r:run('F',{past:V('expPast')/60})};
  const c=RX.r.c,k=RX.r.k,act=c.S.filter(s=>c.q[s]>0),fp=v=>(tankD(v)+.8)**2,dC=Math.max(...act.map(s=>c.tkC[s])),dP=Math.max(...act.map(s=>c.tkP[s])),pos=Math.ceil(k.palDia*V('cobObj')+c.camMP);
  const req={dep:pos/Math.max(1,V('nivRack'))*V('palM2')*V('fPas'),que:V('aQueb'),cru:(act.reduce((a,s)=>a+fp(c.tkC[s]),0)+V('tkExtraC')*fp(dC)+fp(1500)+4)*1.15,pas:V('aPast'),tkp:(act.reduce((a,s)=>a+fp(c.tkP[s]),0)+V('tkExtraP')*fp(dP))*1.3,env:V('aEnv'),cam:V('aCam'),ins:V('aIns'),cas:V('aCasc'),map:V('aMap')};
  const how={dep:`${pos} posiciones en racks de ${fmt(V('nivRack'))} niveles × ${fmt(V('palM2'),1)} m² × ${fmt(V('fPas'),1)} de pasillos`,que:'Supuesto hasta tener la ficha de la máquina',cru:`${act.length} tanques crudos (${act.map(s=>fmt(c.tkC[s])+' L').join(', ')}) + ${fmt(V('tkExtraC'))} de reserva + blend + enfriadores, con 15 % de circulación`,pas:'Pasteurizadora nueva y homogeneizador (supuesto)',tkp:`${act.length} tanques terminados (${act.map(s=>fmt(c.tkP[s])+' L').join(', ')}) + ${fmt(V('tkExtraP'))} de reserva, con 30 % de circulación`,env:'Similar a la sala actual',cam:'Similar a la cámara actual',ins:'Similar al depósito actual',cas:'Centrífuga y tolva (supuesto)',map:'Maples vacíos y sector no conforme (supuesto)'};
  const flows=[['EXT_E','dep',k.shellDia],['dep','que',k.shellDia],['que','cru',k.liqDia],['que','cas',k.cascDia],['que','map',k.palDia*20],['cru','pas',k.pastKgDia],['pas','tkp',k.pastKgDia],['tkp','CIS',k.pastKgDia*c.mixG+k.cruKgDia],['tkp','env',k.pastKgDia*(1-c.mixG)],['env','cam',k.pastKgDia*(1-c.mixG)],['cam','EXT_C',k.pastKgDia*(1-c.mixG)],['cas','EXT_E',k.cascDia],['map','EXT_E',k.palDia*20]];
- const needA=V('exigA')==1,P=Object.fromEntries(Object.entries(PROPB).map(([d,ix])=>[d,subOf(ix)])),pc=qapCost(P,flows),needH=V('exigH')==1,pv=qapCheck(P,req,needA,needH),pk=keyOf(P,flows),res=(()=>{const t0=performance.now(),r=qapSolve(req,flows,needA,pv.length?null:pk,needH);r.ms=performance.now()-t0;return r;})(),best=res.top[0],nA=aTot(),hTx=k=>k.h?'partida':'contigua';
+ const needA=V('exigA')==1,P=Object.fromEntries(Object.entries(PROPB).map(([d,ix])=>[d,subOf(ix)])),pc=qapCost(P,flows),needH=V('exigH')==1,pv=qapCheck(P,req,needA,needH),pk=keyOf(P,flows),res=(()=>{const t0=performance.now(),r=qapSolve(req,flows,needA,pv.length?null:pk,needH);r.ms=performance.now()-t0;return r;})(),best=res.top[0],nA=aTot();
+  OPT={base:RF.c,key,c,k,act,pos,req,how,flows,needA,P,pc,needH,pv,pk,res,best,nA};
+ LENOV.sig=LENOV.sig||{};[['opt',best],['slp',res.slp]].forEach(([kk,o])=>{const sg=o?DP.map(d=>o.A[d.id].m).join(','):'';if(LENOV.sig[kk]!==sg){LENOV[kk]={};LENOV.sig[kk]=sg;}});
+ LAY.opt=best?genLayout(best.A):null;LAY.slp=res.slp?genLayout(res.slp.A):null;return OPT;
+}
+function metodoRender(){
+ const O=optCompute();if(!O)return;const {c,k,act,pos,req,how,flows,needA,P,pc,needH,pv,pk,res,best,nA}=O,hTx=k=>k.h?'partida':'contigua';
  const inp=id=>{const p=PAR.find(x=>x.id===id);return `<tr><td>${p.l}</td><td class="n">${p.opts?`<select data-mp="${id}" aria-label="${p.l}">${p.opts.map(o=>`<option value="${o[0]}"${String(o[0])===String(p.v)?' selected':''}>${o[1]}</option>`).join('')}</select>`:`<input type="number" data-mp="${id}" value="${p.v}" step="${p.step||1}" aria-label="${p.l}">`}</td><td>${p.u}</td><td class="note">${p.src}</td></tr>`;};
  $('#mtPar').innerHTML='<thead><tr><th>Base de diseño</th><th class="n">Valor</th><th>Unidad</th><th>Nota</th></tr></thead><tbody>'+MPAR.map(inp).join('')+'</tbody>';
  $('#mtBase').innerHTML=kp('Pasteurizadora de diseño',fmt(V('expPast'))+' L/h',`hoy ${fmt(V('f_past'))} L/h`)+kp('Producción de diseño',fmt(k.ptMes,1)+' t/mes',`hoy ${fmt(RF.k.ptMes,1)} t/mes`)+kp('Huevo a mover',fmt(k.shellDia)+' kg/día',`${fmt(k.palDia,1)} pallets por día`)+kp('Tanques de diseño',`${act.length+V('tkExtraC')} + ${act.length+V('tkExtraP')}`,'crudos + terminados, con reserva');
@@ -1355,9 +1463,9 @@ function metodoRender(){
  $('#mtBl').innerHTML='<thead><tr><th class="n">N.º</th><th>Módulo del edificio</th><th class="n">m²</th><th>Fachada exterior</th></tr></thead><tbody>'+BL.map(b=>`<tr><td class="n">${b.i+1}</td><td>${b.n}</td><td class="n">${fmt(b.a,1)}</td><td>${b.fac?[...b.fac].map(ch=>({N:'norte',O:'oeste',E:'este',S:'sur'}[ch])).join(', '):'interior'}</td></tr>`).join('')+'</tbody>';
  $('#mtFl').innerHTML='<thead><tr><th>Flujo</th><th class="n">kg por día</th></tr></thead><tbody>'+flows.map(x=>{const nm=y=>({EXT_E:'camión (patio este)',CIS:'cisterna (frente limpio)',EXT_C:'reparto (frente limpio)'}[y]||DP.find(d=>d.id===y).s);return `<tr><td>${nm(x[0])} → ${nm(x[1])}</td><td class="n">${fmt(x[2])}</td></tr>`;}).join('')+'</tbody>';
  $$('#mtPar [data-mp]').forEach(e=>e.addEventListener('change',()=>{const p=PAR.find(x=>x.id===e.dataset.mp),old=p.v;p.v=Number.isFinite(+e.value)?+e.value:p.v;logAdd(`${p.l}: ${old} → ${p.v} ${p.u}`);save();params.done=false;recompute();}));
- $$('#mtRel [data-rel]').forEach(e=>e.addEventListener('change',()=>{const [a,b]=e.dataset.rel.split('|');RELOV[a+'|'+b]=e.value;logAdd(`Relación ${a}–${b}: ${e.value}`);save();metodoRender();}));
+ $$('#mtRel [data-rel]').forEach(e=>e.addEventListener('change',()=>{const [a,b]=e.dataset.rel.split('|');RELOV[a+'|'+b]=e.value;logAdd(`Relación ${a}–${b}: ${e.value}`);save();renderAll();}));
 }
-$('#bRelReset').onclick=()=>{RELOV={};logAdd('Relaciones SLP: se vuelve a la matriz original');save();metodoRender();};
+$('#bRelReset').onclick=()=>{RELOV={};logAdd('Relaciones SLP: se vuelve a la matriz original');save();renderAll();};
 
 const views=['actual','futuro','ideal','informe','balance','logistica','inventario','layout','riesgos','parametros'];
 function route(){let h=location.hash.slice(1);if(h==='metodo'||h==='optimo')h='ideal';shown=views.includes(h)?h:'actual';$$('.view').forEach(v=>v.classList.toggle('act',v.id==='v-'+shown));$$('#tabs a').forEach(a=>a.classList.toggle('act',a.getAttribute('href')==='#'+shown));renderAll();if(shown==='informe')repRender();if(shown==='ideal')metodoRender();}
